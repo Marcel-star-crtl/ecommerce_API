@@ -744,6 +744,173 @@ const applyCoupon = asyncHandler(async (req, res) => {
 });
 
 
+const updateCartQuantity = asyncHandler(async (req, res) => {
+  console.log('\n=== UPDATE CART QUANTITY REQUEST ===');
+  console.log('Method:', req.method);
+  console.log('URL:', req.url);
+  console.log('Raw Body:', req.body);
+  console.log('User:', req.user);
+
+  const { _id: userId } = req.user;
+  const { action, product: productId } = req.body; // 'action' can be "INCREASE" or "DECREASE"
+  validateMongoDbId(userId);
+
+  try {
+    const cart = await Cart.findOne({ orderby: userId }).populate('products.product');
+
+    if (!cart) {
+      console.log('Cart not found for user:', userId);
+      return res.status(404).json({ message: "Cart not found" });
+    }
+
+    const productIndex = cart.products.findIndex(
+      (item) => item.product._id.toString() === productId.toString()
+    );
+
+    if (productIndex === -1) {
+      console.log('Product not found in cart:', productId);
+      return res.status(404).json({ message: "Product not found in cart" });
+    }
+
+    const cartItem = cart.products[productIndex];
+
+    if (action === "INCREASE") {
+      // Check if product quantity is available in stock before increasing
+      const productDoc = await Product.findById(productId);
+      if (!productDoc || productDoc.quantity < (cartItem.count + 1)) {
+        console.log(`Insufficient stock for product ${productId}. Available: ${productDoc ? productDoc.quantity : 0}, Requested: ${cartItem.count + 1}`);
+        return res.status(400).json({ message: "Insufficient product stock." });
+      }
+      cartItem.count++;
+      console.log(`Increased quantity for product ${productId}. New count: ${cartItem.count}`);
+    } else if (action === "DECREASE") {
+      if (cartItem.count > 1) {
+        cartItem.count--;
+        console.log(`Decreased quantity for product ${productId}. New count: ${cartItem.count}`);
+      } else {
+        // If quantity becomes 0, remove the item
+        cart.products.splice(productIndex, 1);
+        console.log(`Removed product ${productId} as quantity reached 0.`);
+      }
+    } else {
+      console.log('Invalid action provided:', action);
+      return res.status(400).json({ message: "Invalid action. Use 'INCREASE' or 'DECREASE'." });
+    }
+
+    // Recalculate cart total
+    let cartTotal = 0;
+    for (const item of cart.products) {
+      // Ensure we use the current price of the product from the DB or stored in cart
+      // For simplicity, using item.price which should be populated if the populate worked
+      // If product.price is null after populate, you might need to fetch product.price again
+      const productData = await Product.findById(item.product._id); // Re-fetch product to get latest price
+      if (productData) {
+         cartTotal += productData.price * item.count;
+      } else {
+         // Handle case where product might have been deleted from inventory
+         // You might want to remove this item from the cart or log an error
+         console.warn(`Product with ID ${item.product._id} not found for cart total calculation.`);
+      }
+    }
+    cart.cartTotal = cartTotal;
+
+    // Save the updated cart
+    const updatedCart = await cart.save();
+
+    // Re-populate to send back the full product details
+    const finalCart = await Cart.findById(updatedCart._id).populate('products.product');
+
+    console.log('Cart updated successfully:', finalCart);
+    res.json({
+      message: "Cart quantity updated successfully",
+      cart: finalCart, // Send back the updated populated cart
+      product: finalCart.products.find(item => item.product._id.toString() === productId.toString()) // Send back the specific updated product if needed
+    });
+
+  } catch (error) {
+    console.error('\n=== UPDATE CART QUANTITY ERROR ===');
+    console.error('Error:', error);
+    console.error('Stack:', error.stack);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+
+// New controller for deleting a specific cart item
+const deleteCartItem = asyncHandler(async (req, res) => {
+  console.log('\n=== DELETE CART ITEM REQUEST ===');
+  console.log('Method:', req.method);
+  console.log('URL:', req.url);
+  console.log('User:', req.user);
+
+  const { _id: userId } = req.user;
+  const { id: productIdToDelete } = req.params; // Product ID from URL params
+
+  validateMongoDbId(userId);
+  validateMongoDbId(productIdToDelete);
+
+  try {
+    const cart = await Cart.findOne({ orderby: userId }).populate('products.product');
+
+    if (!cart) {
+      console.log('Cart not found for user:', userId);
+      return res.status(404).json({ message: "Cart not found" });
+    }
+
+    const initialProductCount = cart.products.length;
+    cart.products = cart.products.filter(
+      (item) => item.product._id.toString() !== productIdToDelete.toString()
+    );
+
+    if (cart.products.length === initialProductCount) {
+      console.log(`Product ${productIdToDelete} not found in cart.`);
+      return res.status(404).json({ message: "Product not found in cart." });
+    }
+
+    // Recalculate cart total
+    let cartTotal = 0;
+    for (const item of cart.products) {
+      const productData = await Product.findById(item.product._id);
+      if (productData) {
+        cartTotal += productData.price * item.count;
+      } else {
+        console.warn(`Product with ID ${item.product._id} not found for cart total calculation after deletion.`);
+      }
+    }
+    cart.cartTotal = cartTotal;
+
+    // Save the updated cart
+    const updatedCart = await cart.save();
+
+    // Re-populate to send back the full product details
+    const finalCart = await Cart.findById(updatedCart._id).populate('products.product');
+
+
+    console.log(`Product ${productIdToDelete} removed successfully. Remaining items: ${finalCart.products.length}`);
+    res.json({
+      message: "Product removed from cart successfully",
+      cart: finalCart // Send back the updated populated cart
+    });
+
+  } catch (error) {
+    console.error('\n=== DELETE CART ITEM ERROR ===');
+    console.error('Error:', error);
+    console.error('Stack:', error.stack);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+
 const createOrder = asyncHandler(async (req, res) => {
   const { _id } = req.user;
   validateMongoDbId(_id);
@@ -1004,6 +1171,8 @@ module.exports = {
   userCart,
   getUserCart,
   emptyCart,
+  updateCartQuantity, 
+  deleteCartItem,
   applyCoupon,
   createOrder,
   getOrders,

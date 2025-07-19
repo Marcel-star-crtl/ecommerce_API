@@ -118,60 +118,46 @@ const getallCategory = asyncHandler(async (req, res) => {
   }
 });
 
-
-// const getallCategory = asyncHandler(async (req, res) => {
-//   try {
-//     const categories = await Category.find().lean(); 
-    
-//     const categoriesWithProductCount = await Promise.all(
-//       categories.map(async (category) => {
-//         const productCount = await Product.countDocuments({ category: category._id });
-//         return {
-//           ...category,
-//           _id: category._id,
-//           title: category.title,
-//           image: category.image?.url || category.image || null, 
-//           productCount: productCount
-//         };
-//       })
-//     );
-    
-//     res.json(categoriesWithProductCount);
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// });
-
 // Add this new function to get products by category with pagination
 const getCategoryProducts = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  validateMongoDbId(id);
-  
+  validateMongoDbId(id); // This validation will now apply to the correct route
+
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.size) || 10;
+    const limit = parseInt(req.query.pageSize) || 10; // *** FIX: Changed from 'size' to 'pageSize' ***
     const skip = (page - 1) * limit;
-    
-    // Get total count
+
+    // Fetch the category to get its title and ensure it exists
+    const category = await Category.findById(id);
+    if (!category) {
+      return res.status(404).json({ message: "Category not found" });
+    }
+
+    // Get total count of products for this category
     const totalCount = await Product.countDocuments({ category: id });
-    
+
     // Get products with pagination
     const products = await Product.find({ category: id })
-      .populate('category')
+      .populate('category') // Populate category details if needed for each product
       .skip(skip)
       .limit(limit)
-      .sort('-createdAt');
-    
+      .sort('-createdAt'); // Sort by creation date, newest first
+
     res.json({
-      results: products,
-      count: totalCount,
+      products: products, // *** FIX: Renamed 'results' to 'products' ***
+      totalProductsCount: totalCount, // *** FIX: Renamed 'count' to 'totalProductsCount' ***
+      categoryName: category.title, // *** FIX: Include the category title in the response ***
       page: page,
       pages: Math.ceil(totalCount / limit)
     });
   } catch (error) {
+    // Log the error for debugging on the backend
+    console.error("Error in getCategoryProducts:", error);
     res.status(500).json({ message: error.message });
   }
 });
+
 
 module.exports = {
   createCategory,

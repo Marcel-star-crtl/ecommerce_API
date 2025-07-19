@@ -118,6 +118,7 @@ const uploadRouter = require("./routes/uploadRoute");
 const paypalRouter = require("./routes/paypal");
 const orderRoutes = require("./routes/orderRoutes");
 const faqRouter = require('./routes/faqRoutes');
+const videoRouter = require('./routes/videoRoute');
 // const paymentRouter = require("./routes/paymentRoutes");
 
 // Connect to the database
@@ -167,6 +168,7 @@ app.use("/api/upload", uploadRouter);
 // app.use("/api/payment", paymentRouter);
 app.use("/api/paypal", paypalRouter);
 app.use('/api/faq', faqRouter);
+app.use('/api/videos', videoRouter);
 
 // Error handling middleware
 app.use(notFound);

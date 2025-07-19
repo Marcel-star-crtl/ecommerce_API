@@ -25,7 +25,9 @@ const {
   updateOrderStatus,
   getAllOrders,
   addToWishlist,
-  deleteWishlistItem
+  deleteWishlistItem,
+  updateCartQuantity, 
+  deleteCartItem
 } = require("../controller/userCtrl");
 
 // const { addToWishlist } = require('../controllers/userController');
@@ -43,6 +45,8 @@ router.post("/admin-login", loginAdmin);
 router.post("/cart", authMiddleware, userCart);
 router.post("/cart/applycoupon", authMiddleware, applyCoupon);
 router.post("/cart/cash-order", authMiddleware, createOrder);
+router.put("/cart/update-quantity", authMiddleware, updateCartQuantity); 
+router.delete("/cart/:id", authMiddleware, deleteCartItem);
 router.get("/all-users", getallUser);
 router.get("/get-orders", authMiddleware, getOrders);
 router.get("/getallorders", authMiddleware, isAdmin, getAllOrders);

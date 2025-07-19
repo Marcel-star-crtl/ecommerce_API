@@ -113,11 +113,15 @@ const generateUniqueTransactionRef = () => {
 
 const createOrder = asyncHandler(async (req, res) => {
   try {
+    // Debugging logs
+    console.log("User ID from request:", req.user?._id);
+    
     const { 
       cartId, 
       products, 
       totalAmount, 
-      shippingAddress
+      shippingAddress,
+      paymentMethod = 'Cash on Delivery'
     } = req.body;
 
     // Validate input
@@ -125,43 +129,45 @@ const createOrder = asyncHandler(async (req, res) => {
       return res.status(400).json({ message: "Invalid request data" });
     }
 
-    // Create COD order in database
-    const newOrder = new Order({
-      user: req.user._id,
-      cart: cartId,
-      products: products.map(item => ({
-        product: item.productId,
-        name: item.name,
-        image: item.image,
-        price: item.price,
-        quantity: item.quantity
-      })),
+    if (!req.user?._id) {
+      return res.status(401).json({ message: "User not authenticated" });
+    }
+
+    // Process products
+    const processedProducts = products.map(item => ({
+      product: item.productId,
+      count: item.quantity || 1,
+      color: item.color || 'default'
+    }));
+
+    // Create order object
+    const orderData = {
+      orderby: req.user._id,  // Make sure this is set
+      products: processedProducts,
+      paymentIntent: paymentMethod,
       totalAmount: totalAmount,
-      paymentIntent: 'Cash on Delivery', 
       orderStatus: 'Pending',
-      shippingAddress: {
-        firstName: shippingAddress.firstName,
-        lastName: shippingAddress.lastName,
-        email: shippingAddress.email,
-        phone: shippingAddress.phone,
+      userDetails: {
+        email: shippingAddress.email || req.user.email,
+        name: `${shippingAddress.firstName} ${shippingAddress.lastName}`,
         address: shippingAddress.address,
         city: shippingAddress.city,
         country: shippingAddress.country,
-        postalCode: shippingAddress.postalCode
-      },
-      userDetails: {
-        email: req.user.email,
-        name: `${shippingAddress.firstName} ${shippingAddress.lastName}`
+        postalCode: shippingAddress.postalCode,
+        phone: shippingAddress.phone
       }
-    });
+    };
 
+    // Create and save order
+    const newOrder = new Order(orderData);
     await newOrder.save();
 
     res.json({ 
       success: true,
       orderId: newOrder._id,
-      message: "Cash on Delivery order created successfully"
+      message: "Order created successfully"
     });
+
   } catch (error) {
     console.error("Order creation error:", error);
     res.status(500).json({ 
@@ -248,18 +254,54 @@ const captureOrder = asyncHandler(async (req, res) => {
 });
 
 
+// orderController.js
 const getOrders = asyncHandler(async (req, res) => {
-  const orders = await Order.find({ orderby: req.user._id })
-    .populate('products.product')
-    .lean();  
+  try {
+    // Disable caching
+    res.setHeader('Cache-Control', 'no-store');
+    
+    const userId = req.user._id;
+    console.log(`Fetching orders for user: ${userId}`);
 
-  const ordersWithShortId = orders.map(order => ({
-    ...order,
-    shortId: shortMongoId(order._id)
-  }));
+    // Find orders with proper population
+    const orders = await Order.find({ orderby: userId })
+      .populate({
+        path: 'products.product',
+        select: 'name price images description' // Only select necessary fields
+      })
+      .sort({ createdAt: -1 })
+      .lean();
 
-  console.log("Orders being sent:", ordersWithShortId); 
-  res.json({ orders: ordersWithShortId });
+    console.log(`Found ${orders.length} orders for user ${userId}`);
+
+    if (orders.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No orders found",
+        orders: []
+      });
+    }
+
+    // Enhance orders with shortId
+    const enhancedOrders = orders.map(order => ({
+      ...order,
+      shortId: order.shortId || shortMongoId(order._id)
+    }));
+
+    return res.status(200).json({
+      success: true,
+      count: enhancedOrders.length,
+      orders: enhancedOrders
+    });
+
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch orders",
+      error: error.message
+    });
+  }
 });
 
 const getSingleOrder = asyncHandler(async (req, res) => {
