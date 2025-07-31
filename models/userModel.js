@@ -1,6 +1,7 @@
 const mongoose = require("mongoose"); 
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
+
 var userSchema = new mongoose.Schema(
   {
     firstname: {
@@ -19,6 +20,7 @@ var userSchema = new mongoose.Schema(
     mobile: {
       type: String,
       unique: true,
+      sparse: true, // This allows multiple null/undefined values
     },
     password: {
       type: String,

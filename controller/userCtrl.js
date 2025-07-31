@@ -25,23 +25,32 @@ const dotenv = require('dotenv');
 dotenv.config()
 
 
-
 const createUser = asyncHandler(async (req, res) => {
   const { firstname, lastname, email, mobile, password } = req.body;
 
-  // Validate required fields
   if (!firstname || !lastname || !email || !password) {
     return res.status(400).json({ message: "Please provide all required fields." });
   }
 
-  // Check for existing user
   const existingUser = await User.findOne({ email });
   if (existingUser) {
     return res.status(409).json({ message: "User already exists." });
   }
 
+  const userData = {
+    firstname,
+    lastname,
+    email,
+    password
+  };
+
+  if (mobile && mobile.trim()) {
+    userData.mobile = mobile.trim();
+  }
+
   // Create user
-  const newUser = await User.create({ firstname, lastname, email, mobile, password });
+  const newUser = await User.create(userData);
+  
   res.status(201).json({
     _id: newUser._id,
     firstname: newUser.firstname,
@@ -52,7 +61,6 @@ const createUser = asyncHandler(async (req, res) => {
     createdAt: newUser.createdAt,
   });
 });
-
 
 // Login a user
 const loginUserCtrl = asyncHandler(async (req, res) => {
