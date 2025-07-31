@@ -13,7 +13,6 @@ const client = new paypal.core.PayPalHttpClient(environment);
 // Function to create PayPal order
 const createOrder = async (req, res) => {
   try {
-    // Construct the request body for creating the order
     const request = new paypal.orders.OrdersCreateRequest();
     request.prefer("return=representation");
     request.requestBody({
@@ -26,13 +25,10 @@ const createOrder = async (req, res) => {
       }]
     });
 
-    // Make the API call to create the order
     const response = await client.execute(request);
 
-    // Extract the order ID from the response
     const orderId = response.result.id;
 
-    // Return the order ID to the client
     res.json({ orderId });
   } catch (error) {
     console.error(error);
@@ -45,16 +41,12 @@ const capturePayment = async (req, res) => {
   try {
     const orderId = req.params.orderId;
 
-    // Construct the request body for capturing the order
     const request = new paypal.orders.OrdersCaptureRequest(orderId);
 
-    // Make the API call to capture the order
     const response = await client.execute(request);
 
-    // Extract relevant information from the response
     const captureId = response.result.purchase_units[0].payments.captures[0].id;
 
-    // Return the capture ID to the client
     res.json({ captureId });
   } catch (error) {
     console.error(error);

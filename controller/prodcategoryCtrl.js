@@ -84,8 +84,7 @@ const getCategory = asyncHandler(async (req, res) => {
     if (!category) {
       return res.status(404).json({ message: "Category not found" });
     }
-    
-    // Get products that belong to this category
+
     const products = await Product.find({ category: id }).populate('category');
     
     res.json({
@@ -118,41 +117,37 @@ const getallCategory = asyncHandler(async (req, res) => {
   }
 });
 
-// Add this new function to get products by category with pagination
 const getCategoryProducts = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  validateMongoDbId(id); // This validation will now apply to the correct route
+  validateMongoDbId(id);
 
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.pageSize) || 10; // *** FIX: Changed from 'size' to 'pageSize' ***
+    const limit = parseInt(req.query.pageSize) || 10; 
     const skip = (page - 1) * limit;
 
-    // Fetch the category to get its title and ensure it exists
     const category = await Category.findById(id);
     if (!category) {
       return res.status(404).json({ message: "Category not found" });
     }
 
-    // Get total count of products for this category
     const totalCount = await Product.countDocuments({ category: id });
 
     // Get products with pagination
     const products = await Product.find({ category: id })
-      .populate('category') // Populate category details if needed for each product
+      .populate('category') 
       .skip(skip)
       .limit(limit)
-      .sort('-createdAt'); // Sort by creation date, newest first
+      .sort('-createdAt'); 
 
     res.json({
-      products: products, // *** FIX: Renamed 'results' to 'products' ***
-      totalProductsCount: totalCount, // *** FIX: Renamed 'count' to 'totalProductsCount' ***
-      categoryName: category.title, // *** FIX: Include the category title in the response ***
+      products: products, 
+      totalProductsCount: totalCount, 
+      categoryName: category.title, 
       page: page,
       pages: Math.ceil(totalCount / limit)
     });
   } catch (error) {
-    // Log the error for debugging on the backend
     console.error("Error in getCategoryProducts:", error);
     res.status(500).json({ message: error.message });
   }
@@ -165,6 +160,6 @@ module.exports = {
   deleteCategory,
   getCategory,
   getallCategory,
-  getCategoryProducts, // Add this export
+  getCategoryProducts,
 };
 

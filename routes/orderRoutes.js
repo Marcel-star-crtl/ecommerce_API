@@ -1,11 +1,8 @@
-// routes/orderRoutes.js
 const express = require("express");
 const router = express.Router();
 const { authMiddleware } = require("../middlewares/authMiddleware");
 const { createOrder, getUserOrders, getOrderById, updateOrderStatus } = require("../controller/paymentController");
-// const { createCheckoutSession } = require("../controller/paymentController");
-const { 
-  // createOrder, 
+const {  
   captureOrder, 
   getOrders, 
   // updateOrderStatus,
@@ -15,8 +12,7 @@ const {
   confirmDelivery,
   getTotalIncome,
   getSingleOrder,
-  getMonthlyIncome,
-  // getOrderById
+  getMonthlyIncome
 } = require("../controller/orderController");
 
 router.post("/create-order", authMiddleware, createOrder);
@@ -30,7 +26,6 @@ router.post("/confirm-delivery", authMiddleware, confirmDelivery);
 router.post('/confirm-receipt', authMiddleware, confirmOrderReceipt);
 router.get("/gettotalincome", authMiddleware, getTotalIncome);
 router.get("/monthly-income", authMiddleware, getMonthlyIncome);
-// router.post("/create-checkout-session", authMiddleware, createCheckoutSession);
 router.get('/getOrderById/:id', getOrderById);
 
 

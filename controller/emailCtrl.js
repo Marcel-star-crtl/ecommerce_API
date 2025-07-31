@@ -3,7 +3,6 @@ const asyncHandler = require("express-async-handler");
 
 const sendEmail = async (options) => {
   try {
-    // Create a transporter using your email service settings
     const transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
       port: process.env.EMAIL_PORT,

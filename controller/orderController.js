@@ -23,94 +23,6 @@ const generateUniqueTransactionRef = () => {
   return 'txn-' + Math.random().toString(36).substr(2, 9);
 };
 
-
-// Controller to create an order
-// const createOrder = asyncHandler(async (req, res) => {
-//   try {
-//     const { cartItems, userDetails, paymentMethod, totalPrice } = req.body;
-
-//     if (!cartItems || !userDetails || !paymentMethod || !totalPrice) {
-//       return res.status(400).json({ message: "Invalid order data" });
-//     }
-
-//     let paymentIntent = "Cash on Delivery";
-//     let paypalOrderId = null;
-//     let mobileMoneyTransactionId = null;
-//     let paymentAuthUrl = null;
-
-//     if (paymentMethod === 'PayPal') {
-//       try {
-//         const request = new paypal.orders.OrdersCreateRequest();
-//         request.prefer("return=representation");
-//         request.requestBody({
-//           intent: 'CAPTURE',
-//           purchase_units: [{
-//             amount: {
-//               currency_code: 'USD',
-//               value: totalPrice.toString()
-//             }
-//           }]
-//         });
-
-//         const order = await paypalClient().execute(request);
-//         paypalOrderId = order.result.id;
-//         paymentIntent = "PayPal";
-//         paymentAuthUrl = `https://www.paypal.com/checkoutnow?token=${paypalOrderId}`;
-//       } catch (paypalError) {
-//         return res.status(500).json({ message: "Failed to create PayPal order", error: paypalError.toString() });
-//       }
-//     } else if (paymentMethod === 'Mobile Money') {
-//       try {
-//         const mobileMoneyResponse = await initiateMobileMoneyPayment(totalPrice, userDetails.phone);
-//         mobileMoneyTransactionId = mobileMoneyResponse.transactionId;
-//         paymentIntent = "Mobile Money";
-//         paymentAuthUrl = mobileMoneyResponse.paymentAuthUrl;
-//       } catch (mobileMoneyError) {
-//         return res.status(500).json({ message: "Failed to initiate Mobile Money payment", error: mobileMoneyError.toString() });
-//       }
-//     }
-
-//     const newOrder = new Order({
-//       products: cartItems.map((cartItem) => ({
-//         product: cartItem.item._id,
-//         count: cartItem.quantity,
-//         color: cartItem.color,
-//       })),
-//       paymentIntent,
-//       paypalOrderId,
-//       mobileMoneyTransactionId,
-//       orderby: req.user._id,
-//       userDetails: {
-//         email: userDetails.email,
-//         name: userDetails.name,
-//         address: userDetails.address,
-//         postalCode: userDetails.postalCode,
-//         city: userDetails.city,
-//         country: userDetails.country,
-//         phone: userDetails.phone,
-//       },
-//       orderStatus: 'Not Processed',
-//       totalAmount: totalPrice,
-//     });
-
-//     await newOrder.save();
-
-//     socketManager.emitNewOrder(newOrder._id, newOrder.orderStatus);
-
-//     res.status(201).json({
-//       orderId: newOrder._id,
-//       clientId: process.env.PAYPAL_CLIENT_ID,
-//       paymentIntent,
-//       paypalOrderId,
-//       mobileMoneyTransactionId,
-//       paymentAuthUrl,
-//     });
-//   } catch (error) {
-//     console.error("Detailed error:", error);
-//     res.status(500).json({ message: 'Error creating order', error: error.toString() });
-//   }
-// });
-
 const createOrder = asyncHandler(async (req, res) => {
   try {
     // Debugging logs
@@ -142,7 +54,7 @@ const createOrder = asyncHandler(async (req, res) => {
 
     // Create order object
     const orderData = {
-      orderby: req.user._id,  // Make sure this is set
+      orderby: req.user._id,  
       products: processedProducts,
       paymentIntent: paymentMethod,
       totalAmount: totalAmount,
@@ -267,7 +179,7 @@ const getOrders = asyncHandler(async (req, res) => {
     const orders = await Order.find({ orderby: userId })
       .populate({
         path: 'products.product',
-        select: 'name price images description' // Only select necessary fields
+        select: 'name price images description' 
       })
       .sort({ createdAt: -1 })
       .lean();

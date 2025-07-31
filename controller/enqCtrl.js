@@ -3,14 +3,6 @@ const asyncHandler = require("express-async-handler");
 const validateMongoDbId = require("../utils/validateMongodbId");
 const socketManager = require("../socketManager");
 
-// const createEnquiry = asyncHandler(async (req, res) => {
-//   try {
-//     const newEnquiry = await Enquiry.create(req.body);
-//     res.json(newEnquiry);
-//   } catch (error) {
-//     throw new Error(error);
-//   }
-// });
 
 const createEnquiry = asyncHandler(async (req, res) => {
   try {
@@ -26,7 +18,6 @@ const createEnquiry = asyncHandler(async (req, res) => {
       comment
     });
 
-    // Emit a Socket.IO event for the new enquiry
     socketManager.getIO().emit('newEnquiry', newEnquiry);
 
     res.status(201).json(newEnquiry);

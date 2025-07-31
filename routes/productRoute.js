@@ -3,9 +3,14 @@ const {
   createProduct,
   getaProduct,
   getAllProduct,
+  getWishlist,
+  addToWishlist,
+  removeFromWishlist,
+  clearWishlist,
+  getWishlistCount,
   updateProduct,
   deleteProduct,
-  addToWishlist,
+  // addToWishlist,
   getRelatedProducts,
   rating,
 } = require("../controller/productCtrl");
@@ -27,6 +32,10 @@ router.get("/:id", getaProduct);
 router.put("/wishlist", authMiddleware, addToWishlist);
 router.put("/rating", authMiddleware, rating);
 router.get('/related/:productId', getRelatedProducts);
+router.get("/wishlist", authMiddleware, getWishlist);
+router.delete("/wishlist", authMiddleware, removeFromWishlist);
+router.delete("/wishlist/clear", authMiddleware, clearWishlist);
+router.get("/wishlist/count", authMiddleware, getWishlistCount);
 
 router.put("/:id", authMiddleware, isAdmin, updateProduct);
 router.delete("/:id", authMiddleware, isAdmin, deleteProduct);

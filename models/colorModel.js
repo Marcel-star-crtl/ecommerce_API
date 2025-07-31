@@ -1,6 +1,5 @@
 const mongoose = require("mongoose"); 
 
-// Declare the Schema of the Mongo model
 var colorSchema = new mongoose.Schema(
   {
     title: {
@@ -15,5 +14,4 @@ var colorSchema = new mongoose.Schema(
   }
 );
 
-//Export the model
 module.exports = mongoose.model("Color", colorSchema);

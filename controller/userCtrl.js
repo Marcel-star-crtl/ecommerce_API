@@ -24,71 +24,6 @@ const sendEmail = require("./emailCtrl");
 const dotenv = require('dotenv');
 dotenv.config()
 
-// const environment = new paypal.core.SandboxEnvironment(
-//   process.env.PAYPAL_CLIENT_ID,
-//   process.env.PAYPAL_CLIENT_SECRET
-// );
-
-// const client = new paypal.core.PayPalHttpClient(environment);
-
-
-// const clientId = process.env.PAYPAL_CLIENT_ID;
-// const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
-
-// Set up PayPal environment
-// const environment = new paypal.core.SandboxEnvironment(clientId, clientSecret);
-// const client = new paypal.core.PayPalHttpClient(environment);
-
-
-// paypal.configure({
-//   'mode': 'sandbox', 
-//   'client_id': paypalClientId,
-//   'client_secret': paypalClientSecret
-// });
-
-
-
-// Create a User ----------------------------------------------
-
-// Function to initiate Mobile Money payment
-// const initiateMobileMoneyPayment = async (amount, phoneNumber) => {
-//   try {
-//     const token = await getToken();
-//     console.log('Using token:', token);
-    
-//     const response = await axios.post(
-//       'https://sandbox.dsapi.tranzak.me/xp021/v1/request/create',
-//       {
-//         amount: amount,
-//         currencyCode: 'XAF',
-//         description: 'Mobile Money Payment',
-//         mchTransactionRef: generateUniqueTransactionRef(),
-//         returnUrl: 'http://yourwebsite.com/payment-callback',
-//         customerPhone: phoneNumber
-//       },
-//       {
-//         headers: {
-//           'Authorization': `Bearer ${token}`,
-//           'Content-Type': 'application/json'
-//         }
-//       }
-//     );
-
-//     console.log('Mobile Money API response:', JSON.stringify(response.data, null, 2));
-
-//     if (response.data && response.data.success) {
-//       return {
-//         transactionId: response.data.data.requestId,
-//         paymentAuthUrl: response.data.data.links.paymentAuthUrl
-//       };
-//     } else {
-//       throw new Error(response.data.errorMsg || 'Failed to initiate payment');
-//     }
-//   } catch (error) {
-//     console.error('Error initiating mobile money payment:', error.response ? error.response.data : error.message);
-//     throw error;
-//   }
-// };
 
 
 const createUser = asyncHandler(async (req, res) => {
@@ -420,17 +355,6 @@ const resetPassword = asyncHandler(async (req, res) => {
   res.json({ success: true, message: "Password reset successfully" });
 });
 
-
-// const getWishlist = asyncHandler(async (req, res) => {
-//   const { _id } = req.user;
-//   try {
-//     const findUser = await User.findById(_id).populate("wishlist");
-//     res.json(findUser);
-//   } catch (error) {
-//     throw new Error(error);
-//   }
-// });
-
 // controllers/userCtrl.js
 const getWishlist = asyncHandler(async (req, res) => {
   const { _id } = req.user;
@@ -551,7 +475,6 @@ const userCart = asyncHandler(async (req, res) => {
       console.log('New format detected - single product');
       let { product_id, quantity, color = "default" } = req.body;
       
-      // Fix: Ensure color is a string, not an array
       if (Array.isArray(color)) {
         color = color[0] || "default";
       }
@@ -579,7 +502,6 @@ const userCart = asyncHandler(async (req, res) => {
         let productItem = cart.products[i];
         console.log('Processing product:', productItem.product);
         
-        // Fix: Ensure color is a string, not an array
         if (Array.isArray(productItem.color)) {
           productItem.color = productItem.color[0] || "default";
         }
@@ -745,21 +667,15 @@ const applyCoupon = asyncHandler(async (req, res) => {
 
 
 const updateCartQuantity = asyncHandler(async (req, res) => {
-  console.log('\n=== UPDATE CART QUANTITY REQUEST ===');
-  console.log('Method:', req.method);
-  console.log('URL:', req.url);
-  console.log('Raw Body:', req.body);
-  console.log('User:', req.user);
 
   const { _id: userId } = req.user;
-  const { action, product: productId } = req.body; // 'action' can be "INCREASE" or "DECREASE"
+  const { action, product: productId } = req.body; 
   validateMongoDbId(userId);
 
   try {
     const cart = await Cart.findOne({ orderby: userId }).populate('products.product');
 
     if (!cart) {
-      console.log('Cart not found for user:', userId);
       return res.status(404).json({ message: "Cart not found" });
     }
 
@@ -768,69 +684,50 @@ const updateCartQuantity = asyncHandler(async (req, res) => {
     );
 
     if (productIndex === -1) {
-      console.log('Product not found in cart:', productId);
       return res.status(404).json({ message: "Product not found in cart" });
     }
 
     const cartItem = cart.products[productIndex];
 
     if (action === "INCREASE") {
-      // Check if product quantity is available in stock before increasing
       const productDoc = await Product.findById(productId);
       if (!productDoc || productDoc.quantity < (cartItem.count + 1)) {
-        console.log(`Insufficient stock for product ${productId}. Available: ${productDoc ? productDoc.quantity : 0}, Requested: ${cartItem.count + 1}`);
         return res.status(400).json({ message: "Insufficient product stock." });
       }
       cartItem.count++;
-      console.log(`Increased quantity for product ${productId}. New count: ${cartItem.count}`);
     } else if (action === "DECREASE") {
       if (cartItem.count > 1) {
         cartItem.count--;
-        console.log(`Decreased quantity for product ${productId}. New count: ${cartItem.count}`);
       } else {
-        // If quantity becomes 0, remove the item
         cart.products.splice(productIndex, 1);
-        console.log(`Removed product ${productId} as quantity reached 0.`);
       }
     } else {
-      console.log('Invalid action provided:', action);
       return res.status(400).json({ message: "Invalid action. Use 'INCREASE' or 'DECREASE'." });
     }
 
-    // Recalculate cart total
     let cartTotal = 0;
     for (const item of cart.products) {
-      // Ensure we use the current price of the product from the DB or stored in cart
-      // For simplicity, using item.price which should be populated if the populate worked
-      // If product.price is null after populate, you might need to fetch product.price again
-      const productData = await Product.findById(item.product._id); // Re-fetch product to get latest price
+      const productData = await Product.findById(item.product._id); 
       if (productData) {
          cartTotal += productData.price * item.count;
       } else {
-         // Handle case where product might have been deleted from inventory
-         // You might want to remove this item from the cart or log an error
          console.warn(`Product with ID ${item.product._id} not found for cart total calculation.`);
       }
     }
     cart.cartTotal = cartTotal;
 
-    // Save the updated cart
     const updatedCart = await cart.save();
 
-    // Re-populate to send back the full product details
     const finalCart = await Cart.findById(updatedCart._id).populate('products.product');
 
     console.log('Cart updated successfully:', finalCart);
     res.json({
       message: "Cart quantity updated successfully",
-      cart: finalCart, // Send back the updated populated cart
-      product: finalCart.products.find(item => item.product._id.toString() === productId.toString()) // Send back the specific updated product if needed
+      cart: finalCart, 
+      product: finalCart.products.find(item => item.product._id.toString() === productId.toString())
     });
 
   } catch (error) {
-    console.error('\n=== UPDATE CART QUANTITY ERROR ===');
-    console.error('Error:', error);
-    console.error('Stack:', error.stack);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -843,13 +740,9 @@ const updateCartQuantity = asyncHandler(async (req, res) => {
 
 // New controller for deleting a specific cart item
 const deleteCartItem = asyncHandler(async (req, res) => {
-  console.log('\n=== DELETE CART ITEM REQUEST ===');
-  console.log('Method:', req.method);
-  console.log('URL:', req.url);
-  console.log('User:', req.user);
 
   const { _id: userId } = req.user;
-  const { id: productIdToDelete } = req.params; // Product ID from URL params
+  const { id: productIdToDelete } = req.params; 
 
   validateMongoDbId(userId);
   validateMongoDbId(productIdToDelete);
@@ -858,7 +751,6 @@ const deleteCartItem = asyncHandler(async (req, res) => {
     const cart = await Cart.findOne({ orderby: userId }).populate('products.product');
 
     if (!cart) {
-      console.log('Cart not found for user:', userId);
       return res.status(404).json({ message: "Cart not found" });
     }
 
@@ -868,11 +760,9 @@ const deleteCartItem = asyncHandler(async (req, res) => {
     );
 
     if (cart.products.length === initialProductCount) {
-      console.log(`Product ${productIdToDelete} not found in cart.`);
       return res.status(404).json({ message: "Product not found in cart." });
     }
 
-    // Recalculate cart total
     let cartTotal = 0;
     for (const item of cart.products) {
       const productData = await Product.findById(item.product._id);
@@ -884,23 +774,17 @@ const deleteCartItem = asyncHandler(async (req, res) => {
     }
     cart.cartTotal = cartTotal;
 
-    // Save the updated cart
     const updatedCart = await cart.save();
 
-    // Re-populate to send back the full product details
     const finalCart = await Cart.findById(updatedCart._id).populate('products.product');
 
 
-    console.log(`Product ${productIdToDelete} removed successfully. Remaining items: ${finalCart.products.length}`);
     res.json({
       message: "Product removed from cart successfully",
-      cart: finalCart // Send back the updated populated cart
+      cart: finalCart
     });
 
   } catch (error) {
-    console.error('\n=== DELETE CART ITEM ERROR ===');
-    console.error('Error:', error);
-    console.error('Stack:', error.stack);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -931,16 +815,12 @@ const createOrder = asyncHandler(async (req, res) => {
       }]
     });
 
-    // Make the API call to create the PayPal order
     const response = await client.execute(request);
 
-    // Extract the PayPal order ID from the response
     const orderId = response.result.id;
 
-    // Construct the approval URL
     const approvalUrl = response.result.links.find(link => link.rel === 'approve').href;
 
-    // Return the PayPal order ID and approval URL to the client
     res.json({ orderId, approvalUrl });
   } catch (error) {
     throw new Error(error);
@@ -1003,7 +883,7 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
 
     if (status === 'Dispatched') {
       updateData.dispatchedAt = dispatchedAt || new Date();
-      updateData.expectedDeliveryAt = expectedDeliveryAt || new Date(Date.now() + 24 * 60 * 60 * 1000); // 1 day from now
+      updateData.expectedDeliveryAt = expectedDeliveryAt || new Date(Date.now() + 24 * 60 * 60 * 1000); 
     }
 
     const updatedOrder = await Order.findByIdAndUpdate(
@@ -1031,76 +911,51 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
 });
 
 
-// Controller to initiate order confirmation
 const initiateOrderConfirmation = asyncHandler(async (req, res) => {
-  console.log('Initiating order confirmation');
   const { orderId } = req.body;
-  console.log('Order ID:', orderId);
   
   try {
     const order = await Order.findById(orderId);
-    console.log('Found order:', order);
     if (!order || order.orderby.toString() !== req.user._id.toString()) {
-      console.log('Unauthorized access');
       return res.status(403).json({ message: "Unauthorized" });
     }
     const confirmationCode = crypto.randomInt(100000, 999999).toString();
     const codeExpiry = new Date(Date.now() + 15*60*1000); 
-    console.log('Generated confirmation code:', confirmationCode);
-    console.log('Code expiry:', codeExpiry);
 
     order.confirmationCode = confirmationCode;
     order.codeExpiry = codeExpiry;
     await order.save();
 
-    console.log('Order updated with confirmation code');
-    // Send SMS with the confirmation code
     const smsSent = await sendSMS(order.userDetails.phone, confirmationCode);
-    console.log('SMS sent result:', smsSent);
     if (smsSent) {
-      console.log('Confirmation code sent successfully');
       res.status(200).json({ message: "Confirmation code sent" });
     } else {
-      console.log('Failed to send confirmation code');
       res.status(500).json({ message: "Failed to send confirmation code" });
     }
   } catch (error) {
-    console.error('Error in initiateOrderConfirmation:', error);
     res.status(500).json({ message: "Internal server error", error: error.message });
   }
 });
 
 
-// Controller to confirm order receipt
 const confirmOrderReceipt = asyncHandler(async (req, res) => {
-  console.log('Confirming order receipt');
   const { orderId, confirmationCode } = req.body;
-  console.log('Order ID:', orderId);
-  console.log('Confirmation Code:', confirmationCode);
 
   const order = await Order.findById(orderId);
-  console.log('Found order:', order);
 
   if (!order) {
-    console.log('Order not found');
     return res.status(404).json({ message: "Order not found" });
   }
 
   if (order.orderby.toString() !== req.user._id.toString()) {
-    console.log('Unauthorized access');
     return res.status(403).json({ message: "Unauthorized" });
   }
 
-  console.log('Stored confirmation code:', order.confirmationCode);
-  console.log('Code expiry:', order.codeExpiry);
-
   if (!order.confirmationCode || order.confirmationCode !== confirmationCode) {
-    console.log('Invalid confirmation code');
     return res.status(400).json({ message: "Invalid confirmation code" });
   }
 
   if (!order.codeExpiry || new Date() > order.codeExpiry) {
-    console.log('Confirmation code expired');
     return res.status(400).json({ message: "Confirmation code expired" });
   }
 
@@ -1109,7 +964,6 @@ const confirmOrderReceipt = asyncHandler(async (req, res) => {
   order.codeExpiry = undefined;
   await order.save();
 
-  console.log('Order receipt confirmed');
   res.status(200).json({ message: "Order receipt confirmed", order });
 });
 

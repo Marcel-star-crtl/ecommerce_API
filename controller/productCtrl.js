@@ -1,304 +1,3 @@
-// const Product = require("../models/productModel");
-// const User = require("../models/userModel");
-// const asyncHandler = require("express-async-handler");
-// const slugify = require("slugify");
-// const validateMongoDbId = require("../utils/validateMongodbId");
-// const cloudinaryUploadingImg = require("../utils/cloudinary");
-
-// const createProduct = asyncHandler(async (req, res) => {
-//   try {
-//     if (req.body.title) {
-//       req.body.slug = slugify(req.body.title);
-//     }
-//     const newProduct = await Product.create(req.body);
-//     res.json(newProduct);
-//   } catch (error) {
-//     throw new Error(error);
-//   }
-// });
-
-// const updateProduct = asyncHandler(async (req, res) => {
-//   const id = req.params;
-//   validateMongoDbId(id);
-//   try {
-//     if (req.body.title) {
-//       req.body.slug = slugify(req.body.title);
-//     }
-//     const updateProduct = await Product.findOneAndUpdate({ id }, req.body, {
-//       new: true,
-//     });
-//     res.json(updateProduct);
-//   } catch (error) {
-//     throw new Error(error);
-//   }
-// });
-
-// const deleteProduct = asyncHandler(async (req, res) => {
-//   const id = req.params;
-//   validateMongoDbId(id);
-//   try {
-//     const deleteProduct = await Product.findOneAndDelete(id);
-//     res.json(deleteProduct);
-//   } catch (error) {
-//     throw new Error(error);
-//   }
-// });
-
-// // const getaProduct = asyncHandler(async (req, res) => {
-// //   const { id } = req.params;
-// //   validateMongoDbId(id);
-// //   try {
-// //     const findProduct = await Product.findById(id);
-// //     res.json(findProduct);
-// //   } catch (error) {
-// //     throw new Error(error);
-// //   }
-// // });
-
-// const getaProduct = asyncHandler(async (req, res) => {
-//   const { id } = req.params; 
-//   validateMongoDbId(id);
-//   try {
-//     const findProduct = await Product.findById(id); 
-//     res.json(findProduct);
-//   } catch (error) {
-//     throw new Error(error);
-//   }
-// });
-
-
-// const getAllProduct = asyncHandler(async (req, res) => {
-//   try {
-//     // Filtering
-//     const queryObj = { ...req.query };
-//     const excludeFields = ["page", "sort", "limit", "fields"];
-//     excludeFields.forEach((el) => delete queryObj[el]);
-//     let queryStr = JSON.stringify(queryObj);
-//     queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`);
-
-//     let query = Product.find(JSON.parse(queryStr));
-
-//     // Search by title
-//     if (req.query.title) {
-//       query = query.where('title', new RegExp(req.query.title, 'i'));
-//     }
-
-//     // Sorting
-//     if (req.query.sort) {
-//       const sortBy = req.query.sort.split(",").join(" ");
-//       query = query.sort(sortBy);
-//     } else {
-//       query = query.sort("-createdAt");
-//     }
-
-//     // limiting the fields
-//     if (req.query.fields) {
-//       const fields = req.query.fields.split(",").join(" ");
-//       query = query.select(fields);
-//     } else {
-//       query = query.select("-__v");
-//     }
-
-//     // pagination
-//     const page = req.query.page;
-//     const limit = req.query.limit;
-//     const skip = (page - 1) * limit;
-//     query = query.skip(skip).limit(limit);
-//     if (req.query.page) {
-//       const productCount = await Product.countDocuments();
-//       if (skip >= productCount) throw new Error("This Page does not exists");
-//     }
-//     const product = await query;
-//     res.json(product);
-//   } catch (error) {
-//     throw new Error(error);
-//   }
-// });
-
-
-// const addToWishlist = asyncHandler(async (req, res) => {
-//   const { _id } = req.user;
-//   const { prodId } = req.body;
-//   try {
-//     const user = await User.findById(_id);
-//     const alreadyadded = user.wishlist.find((id) => id.toString() === prodId);
-//     if (alreadyadded) {
-//       let user = await User.findByIdAndUpdate(
-//         _id,
-//         {
-//           $pull: { wishlist: prodId },
-//         },
-//         {
-//           new: true,
-//         }
-//       );
-//       res.json(user);
-//     } else {
-//       let user = await User.findByIdAndUpdate(
-//         _id,
-//         {
-//           $push: { wishlist: prodId },
-//         },
-//         {
-//           new: true,
-//         }
-//       );
-//       res.json(user);
-//     }
-//   } catch (error) {
-//     throw new Error(error);
-//   }
-// });
-
-// const rating = asyncHandler(async (req, res) => {
-//   const { _id } = req.user;
-//   const { star, prodId, comment } = req.body;
-//   try {
-//     const product = await Product.findById(prodId);
-//     let alreadyRated = product.ratings.find(
-//       (userId) => userId.postedby.toString() === _id.toString()
-//     );
-//     if (alreadyRated) {
-//       const updateRating = await Product.updateOne(
-//         {
-//           ratings: { $elemMatch: alreadyRated },
-//         },
-//         {
-//           $set: { "ratings.$.star": star, "ratings.$.comment": comment },
-//         },
-//         {
-//           new: true,
-//         }
-//       );
-//     } else {
-//       const rateProduct = await Product.findByIdAndUpdate(
-//         prodId,
-//         {
-//           $push: {
-//             ratings: {
-//               star: star,
-//               comment: comment,
-//               postedby: _id,
-//             },
-//           },
-//         },
-//         {
-//           new: true,
-//         }
-//       );
-//     }
-//     const getallratings = await Product.findById(prodId);
-//     let totalRating = getallratings.ratings.length;
-//     let ratingsum = getallratings.ratings
-//       .map((item) => item.star)
-//       .reduce((prev, curr) => prev + curr, 0);
-//     let actualRating = Math.round(ratingsum / totalRating);
-//     let finalproduct = await Product.findByIdAndUpdate(
-//       prodId,
-//       {
-//         totalrating: actualRating,
-//       },
-//       { new: true }
-//     );
-//     res.json(finalproduct);
-//   } catch (error) {
-//     throw new Error(error);
-//   }
-// });
-
-// // const uploadImages = asyncHandler(async (req, res) => {
-// //   console.log(req.files);
-// // })
-
-// // const uploadImages = asyncHandler(async (req, res) => {
-// //   const { id } = req.params;
-// //   validateMongoDbId(id);
-// //   try {
-// //     const uploader = (path) => cloudinaryUploadingImg.cloudinaryUploadImg(path, "Images");
-// //     const urls = [];
-// //     const files = req.files;
-// //     for ( const file of files ) {
-// //       const { path } = files;
-// //       const newpath = await uploader(path);
-// //       urls.push(newpath);
-// //     }
-// //     const findProduct = await Product.findByIdAndUpdate(id, 
-      
-// //       {
-// //         images: urls.map((file) => {
-// //           return file;
-// //         }), 
-// //       }, {
-// //         new: true,
-// //       }
-// //     );
-// //     res.json(findProduct);
-// //   }catch (error) {
-// //     throw new Error(error)
-// //   }
-// // })
-
-
-
-// const uploadImages = asyncHandler(async (req, res) => {
-//   const { id } = req.params;
-//   validateMongoDbId(id);
-//   try {
-//     const uploader = (path) => cloudinaryUploadImg(path);
-//     const urls = [];
-//     const files = req.files;
-//     for (const file of files) {
-//       const { path } = file;
-//       const newPath = await uploader(path);
-//       urls.push(newPath);
-//       fs.unlinkSync(path); // Remove the file from the local filesystem after uploading to Cloudinary
-//     }
-//     const product = await Product.findByIdAndUpdate(
-//       id,
-//       {
-//         $push: { images: { $each: urls } }, 
-//       },
-//       { new: true }
-//     );
-//     res.json(product);
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ message: 'Server error' });
-//   }
-// });
-
-
-// module.exports = {
-//   createProduct,
-//   getaProduct,
-//   getAllProduct,
-//   updateProduct,
-//   deleteProduct,
-//   addToWishlist,
-//   rating,
-//   uploadImages
-// };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const Product = require("../models/productModel");
 const User = require("../models/userModel");
 const Category = require("../models/prodcategoryModel.js");
@@ -307,7 +6,6 @@ const slugify = require("slugify");
 const validateMongoDbId = require("../utils/validateMongodbId");
 const cloudinaryUploadingImg = require("../utils/cloudinary");
 const shuffleArray = require("../utils/shuffleArray");
-
 
 const createProduct = asyncHandler(async (req, res) => {
   try {
@@ -322,26 +20,68 @@ const createProduct = asyncHandler(async (req, res) => {
 
     req.body.category = category._id;
 
-    // Handle image uploads
+    // Handle different types of image uploads
     if (req.files && req.files.length > 0) {
-      const uploadPromises = req.files.map(file => 
-        cloudinary.uploader.upload(file.buffer.toString('base64'), {
-          folder: "products",
-        })
-      );
-      
-      const uploadedImages = await Promise.all(uploadPromises);
+      const mainImages = [];
+      let detailsImage = null;
+      let productionImage = null;
+      let beforeImage = null;
+      let afterImage = null;
 
-      req.body.images = uploadedImages.map(img => ({
-        public_id: img.public_id,
-        url: img.secure_url
-      }));
+      for (const file of req.files) {
+        const uploadResult = await cloudinary.uploader.upload(file.buffer.toString('base64'), {
+          folder: "products",
+        });
+
+        const imageData = {
+          public_id: uploadResult.public_id,
+          url: uploadResult.secure_url
+        };
+
+        switch (file.fieldname) {
+          case 'detailsImage':
+            detailsImage = imageData;
+            break;
+          case 'productionImage':
+            productionImage = imageData;
+            break;
+          case 'beforeImage':
+            beforeImage = imageData;
+            break;
+          case 'afterImage':
+            afterImage = imageData;
+            break;
+          default:
+            mainImages.push(imageData);
+        }
+      }
+
+      req.body.images = mainImages;
+      if (detailsImage) req.body.detailsImage = detailsImage;
+      if (productionImage) req.body.productionImage = productionImage;
+      if (beforeImage && afterImage) {
+        req.body.beforeAfterImages = {
+          before: beforeImage,
+          after: afterImage
+        };
+      }
+    }
+
+    // Handle benefits and keyFeatures arrays
+    if (req.body.benefits && typeof req.body.benefits === 'string') {
+      req.body.benefits = req.body.benefits.split(',').map(benefit => benefit.trim());
+    }
+    
+    if (req.body.keyFeatures && typeof req.body.keyFeatures === 'string') {
+      req.body.keyFeatures = req.body.keyFeatures.split(',').map(feature => feature.trim());
     }
 
     const newProduct = await Product.create({
       ...req.body,
       isFinalSale: req.body.isFinalSale || false,
       size: req.body.size,
+      isActive: req.body.isActive !== undefined ? req.body.isActive : true,
+      featured: req.body.featured || false
     });
 
     await Category.findByIdAndUpdate(category._id, {
@@ -355,57 +95,90 @@ const createProduct = asyncHandler(async (req, res) => {
   }
 });
 
-
 const updateProduct = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  validateMongoDbId(id);
+  validateMongoDbId(id); 
+
   try {
     if (req.body.title) {
       req.body.slug = slugify(req.body.title);
     }
+
+    if (req.body.category) {
+      const category = await Category.findOne({ title: req.body.category });
+      if (!category) {
+        return res.status(400).json({ message: "Category not found" });
+      }
+      req.body.category = category._id;
+    }
+
+    // Handle array fields
+    if (req.body.benefits && typeof req.body.benefits === 'string') {
+      req.body.benefits = req.body.benefits.split(',').map(benefit => benefit.trim());
+    }
+    
+    if (req.body.keyFeatures && typeof req.body.keyFeatures === 'string') {
+      req.body.keyFeatures = req.body.keyFeatures.split(',').map(feature => feature.trim());
+    }
+
     const updatedProduct = await Product.findByIdAndUpdate(id, req.body, {
-      new: true,
-    });
+      new: true, 
+    }).populate('category');
+
+    if (!updatedProduct) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
     res.json(updatedProduct);
   } catch (error) {
-    throw new Error(error);
+    console.error("Error updating product:", error);
+    res.status(500).json({ message: "Failed to update product", error: error.message });
   }
 });
 
+// Get single product with all details
+const getaProduct = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  validateMongoDbId(id);
+  try {
+    const foundProduct = await Product.findById(id)
+      .populate('category', 'title')
+      .populate('ratings.postedby', 'firstname lastname');
+    
+    if (!foundProduct) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+    
+    res.json(foundProduct);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
 const deleteProduct = asyncHandler(async (req, res) => {
   const { id } = req.params;
   validateMongoDbId(id);
   try {
     const deletedProduct = await Product.findByIdAndDelete(id);
-    res.json(deletedProduct);
+    if (!deletedProduct) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+    res.json({ message: "Product deleted successfully", deletedProduct });
   } catch (error) {
-    throw new Error(error);
+    res.status(500).json({ message: error.message });
   }
 });
-
-
-const getaProduct = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  validateMongoDbId(id);
-  try {
-    const foundProduct = await Product.findById(id);
-    res.json(foundProduct);
-  } catch (error) {
-    throw new Error(error);
-  }
-});
-
 
 const getAllProduct = asyncHandler(async (req, res) => {
   try {
     const queryObj = { ...req.query };
     const excludeFields = ["page", "sort", "limit", "fields", "size"];
     excludeFields.forEach((el) => delete queryObj[el]);
+    
     let queryStr = JSON.stringify(queryObj);
     queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`);
 
-    let query = Product.find(JSON.parse(queryStr)).populate('category');
+    let query = Product.find(JSON.parse(queryStr)).populate('category', 'title');
 
     if (req.query.title) {
       query = query.where('title', new RegExp(req.query.title, 'i'));
@@ -413,6 +186,10 @@ const getAllProduct = asyncHandler(async (req, res) => {
 
     if (req.query.tags) {
       query = query.where('tags', req.query.tags);
+    }
+
+    if (req.query.featured) {
+      query = query.where('featured', req.query.featured === 'true');
     }
 
     if (req.query.sort) {
@@ -429,12 +206,10 @@ const getAllProduct = asyncHandler(async (req, res) => {
       query = query.select("-__v");
     }
 
-    // Handle pagination - use 'size' parameter from frontend
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.size) || 10;
     const skip = (page - 1) * limit;
     
-    // Get total count before applying pagination
     const totalCount = await Product.countDocuments(JSON.parse(queryStr));
     
     query = query.skip(skip).limit(limit);
@@ -445,7 +220,6 @@ const getAllProduct = asyncHandler(async (req, res) => {
 
     const products = await query;
     
-    // Return paginated response structure that matches frontend expectations
     res.json({
       results: products,
       count: totalCount,
@@ -454,10 +228,9 @@ const getAllProduct = asyncHandler(async (req, res) => {
     });
     
   } catch (error) {
-    throw new Error(error);
+    res.status(500).json({ message: error.message });
   }
 });
-
 
 const getRelatedProducts = asyncHandler(async (req, res) => {
   const { productId } = req.params;
@@ -470,12 +243,10 @@ const getRelatedProducts = asyncHandler(async (req, res) => {
     let relatedProducts = await Product.find({
       category: product.category._id,
       _id: { $ne: productId },
-    });
+      isActive: true
+    }).populate('category', 'title');
 
-    // Shuffle the related products
     relatedProducts = shuffleArray(relatedProducts);
-
-    // Limit the number of related products returned
     relatedProducts = relatedProducts.slice(0, 10);
 
     res.json(relatedProducts);
@@ -484,64 +255,190 @@ const getRelatedProducts = asyncHandler(async (req, res) => {
   }
 });
 
-const addToWishlist = async (req, res) => {
+const getWishlist = asyncHandler(async (req, res) => {
   try {
-    const { productId } = req.body;
-    const userId = req.user.id; 
+    const { _id } = req.user;
+    validateMongoDbId(_id);
 
-    // Find the user by userId
-    const user = await User.findById(userId);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.size) || 10;
+    const skip = (page - 1) * limit;
+
+    const user = await User.findById(_id).populate({
+      path: 'wishlist',
+      populate: {
+        path: 'category',
+        select: 'title'
+      }
+    });
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Check if productId is already in the wishlist
-    if (user.wishlist.includes(productId)) {
+    const totalCount = user.wishlist.length;
+    const paginatedWishlist = user.wishlist.slice(skip, skip + limit);
+
+    const formattedProducts = paginatedWishlist.map(product => ({
+      id: product._id,
+      _id: product._id,
+      title: product.title,
+      name: product.title,
+      description: product.description,
+      price: product.price,
+      brand: product.brand,
+      category: product.category,
+      images: product.images,
+      size: product.size,
+      quantity: product.quantity,
+      isFinalSale: product.isFinalSale,
+      tags: product.tags,
+      ratings: product.ratings,
+      totalrating: product.totalrating,
+      slug: product.slug,
+      itemNumber: product._id.toString().slice(-8).toUpperCase()
+    }));
+
+    res.json({
+      products: formattedProducts,
+      count: totalCount,
+      page: page,
+      pages: Math.ceil(totalCount / limit),
+      product_details: {
+        results: formattedProducts,
+        count: totalCount,
+        page: page,
+        pages: Math.ceil(totalCount / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching wishlist:', error);
+    res.status(500).json({ message: 'Failed to fetch wishlist' });
+  }
+});
+
+const addToWishlist = asyncHandler(async (req, res) => {
+  try {
+    const { productId } = req.body;
+    const { _id: userId } = req.user;
+
+    validateMongoDbId(userId);
+    
+    if (!productId) {
+        return res.status(400).json({ message: 'Product ID is required.' });
+    }
+    validateMongoDbId(productId);
+
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    const user = await User.findById(userId).select('+wishlist');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (!user.wishlist) {
+      user.wishlist = [];
+    }
+
+    const isAlreadyInWishlist = user.wishlist.some(
+      (item) => item && item.equals(productId)
+    );
+
+    if (isAlreadyInWishlist) {
       return res.status(400).json({ message: 'Product already in wishlist' });
     }
 
-    // Add productId to wishlist
     user.wishlist.push(productId);
     await user.save();
 
-    res.status(200).json(user);
+    const updatedUserForLog = await User.findById(userId).select('wishlist');
+
+    res.status(200).json({
+      message: 'Product added to wishlist successfully',
+      wishlistCount: user.wishlist.length
+    });
   } catch (error) {
-    console.error('[addToWishlist]', error.message);
-    res.status(500).json({ message: 'Failed to update wishlist' });
+    console.error(`[addToWishlist] Uncaught error:`, error);
+    res.status(500).json({ message: 'Failed to add product to wishlist', error: error.message });
   }
-};
+});
 
-
-const deleteWishlistItem = async (req, res) => {
+const removeFromWishlist = asyncHandler(async (req, res) => {
   try {
     const { productId } = req.body;
-    const userId = req.user.id; 
+    const { _id: userId } = req.user;
 
-    // Find the user by userId
-    const user = await User.findById(userId);
+    validateMongoDbId(userId);
+    validateMongoDbId(productId);
 
+    const user = await User.findById(userId).select('+wishlist');
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Check if productId is in the wishlist
-    if (!user.wishlist.includes(productId)) {
+    const productExistsInWishlist = user.wishlist.some(
+      (item) => item && item.equals(productId)
+    );
+
+    if (!productExistsInWishlist) {
       return res.status(400).json({ message: 'Product not found in wishlist' });
     }
 
-    // Remove productId from wishlist
-    user.wishlist = user.wishlist.filter(id => id !== productId);
+    user.wishlist = user.wishlist.filter(id => !id.equals(productId));
     await user.save();
 
-    res.status(200).json(user);
+    res.status(200).json({
+      message: 'Product removed from wishlist successfully',
+      wishlistCount: user.wishlist.length
+    });
   } catch (error) {
-    console.error('[deleteWishlistItem]', error.message);
-    res.status(500).json({ message: 'Failed to update wishlist' });
+    console.error('[removeFromWishlist]', error);
+    res.status(500).json({ message: 'Failed to remove product from wishlist' });
   }
-};
+});
 
+const clearWishlist = asyncHandler(async (req, res) => {
+  try {
+    const { _id: userId } = req.user;
+    validateMongoDbId(userId);
 
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.wishlist = [];
+    await user.save();
+
+    res.status(200).json({
+      message: 'Wishlist cleared successfully',
+      wishlistCount: 0
+    });
+  } catch (error) {
+    console.error('[clearWishlist]', error);
+    res.status(500).json({ message: 'Failed to clear wishlist' });
+  }
+});
+
+const getWishlistCount = asyncHandler(async (req, res) => {
+  try {
+    const { _id: userId } = req.user;
+    validateMongoDbId(userId);
+
+    const user = await User.findById(userId).select('wishlist');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ count: user.wishlist.length });
+  } catch (error) {
+    console.error('[getWishlistCount]', error);
+    res.status(500).json({ message: 'Failed to get wishlist count' });
+  }
+});
 
 const rating = asyncHandler(async (req, res) => {
   const { _id } = req.user;
@@ -603,14 +500,11 @@ const rating = asyncHandler(async (req, res) => {
   }
 });
 
-
-
-
 const uploadImages = asyncHandler(async (req, res) => {
   const { id } = req.params;
   validateMongoDbId(id);
   try {
-    const uploader = (path) => cloudinaryUploadImg(path);
+    const uploader = (path) => cloudinaryUploadingImg(path);
     const urls = [];
     const files = req.files;
     for (const file of files) {
@@ -637,11 +531,14 @@ module.exports = {
   createProduct,
   getaProduct,
   getAllProduct,
+  getWishlist,
+  addToWishlist,
+  removeFromWishlist,
+  clearWishlist,
+  getWishlistCount,
   updateProduct,
   deleteProduct,
-  addToWishlist,
   rating,
   uploadImages,
-  deleteWishlistItem,
   getRelatedProducts
 };

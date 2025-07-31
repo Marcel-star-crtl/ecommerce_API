@@ -32,7 +32,7 @@ const multerFilter = (req, file, cb) => {
 const uploadPhoto = multer({
   storage: storage,
   fileFilter: multerFilter,
-  limits: { fileSize: 5 * 1024 * 1024 }, // Increase file size limit to 5MB
+  limits: { fileSize: 5 * 1024 * 1024 }, 
 });
 
 // Resize image middleware

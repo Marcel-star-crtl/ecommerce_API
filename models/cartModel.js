@@ -1,4 +1,3 @@
-// cartModel.js
 const mongoose = require("mongoose"); 
 
 var cartSchema = new mongoose.Schema(
@@ -44,7 +43,6 @@ var cartSchema = new mongoose.Schema(
   }
 );
 
-// Add index for better performance
 cartSchema.index({ orderby: 1 });
 
 module.exports = mongoose.model("Cart", cartSchema);
